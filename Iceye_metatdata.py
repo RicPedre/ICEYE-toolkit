@@ -2,6 +2,7 @@ import xml.etree.ElementTree as ET
 import numpy as np
 import math
 import os
+from datetime import datetime
 
 
 def extract_state_vector(xml_file, ref="center"):
@@ -139,14 +140,16 @@ def get_xml_files(directory):
 
 
 if __name__ == "__main__":
-
     # Directory containing the metadata XML files.
     directory = "input_data"
 
     # Get all XML files in the directory.
     xml_files = get_xml_files(directory)
 
-    # Iterate over all pairs of XML files.
+    # List to store comparison results.
+    comparison_results = []
+
+    # Compare each pair of XML files.
     for i in range(len(xml_files)):
         for j in range(i + 1, len(xml_files)):
             primary_metadata_file = xml_files[i]
@@ -155,12 +158,6 @@ if __name__ == "__main__":
             # Extract state vectors for primary and secondary.
             P_primary, time_primary = extract_state_vector(primary_metadata_file)
             P_secondary, time_secondary = extract_state_vector(secondary_metadata_file)
-
-            print(f"Comparing {primary_metadata_file} and {secondary_metadata_file}")
-            print("primary acquisition time:", time_primary)
-            print("primary position:", P_primary)
-            print("secondary acquisition time:", time_secondary)
-            print("secondary position:", P_secondary)
 
             # Extract incidence and azimuth angles for primary and secondary.
             incidence_primary, azimuth_primary = extract_angles(primary_metadata_file)
@@ -174,15 +171,39 @@ if __name__ == "__main__":
 
             # Compute the average LOS vector to use as the common reference.
             u_LOS_avg = average_LOS(u_LOS_primary, u_LOS_secondary)
-            print("primary LOS vector:", u_LOS_primary)
-            print("secondary LOS vector:", u_LOS_secondary)
-            print("Average LOS vector:", u_LOS_avg)
 
             # Compute the baseline and its perpendicular component using the average LOS.
             B_total, B_perp_vector, B_perp_magnitude = compute_perpendicular_baseline(
                 P_primary, P_secondary, u_LOS_avg
             )
-            print("Total baseline (m):", B_total)
-            print("Perpendicular baseline vector (m):", B_perp_vector)
-            print("Perpendicular baseline magnitude (m):", B_perp_magnitude)
-            print("\n")
+
+            # Convert time strings to datetime objects
+            time_primary_dt = datetime.strptime(time_primary, "%Y-%m-%dT%H:%M:%S.%f")
+            time_secondary_dt = datetime.strptime(
+                time_secondary, "%Y-%m-%dT%H:%M:%S.%f"
+            )
+
+            # Compute temporal baseline
+            temporal_baseline = abs(
+                (time_primary_dt - time_secondary_dt).total_seconds() / 86400
+            )
+
+            # Store the comparison result.
+            comparison_results.append(
+                {
+                    "primary_file": primary_metadata_file,
+                    "secondary_file": secondary_metadata_file,
+                    "perpendicular_baseline_magnitude": B_perp_magnitude,
+                    "temporal_baseline_days": temporal_baseline,
+                }
+            )
+
+    # Print all comparison results.
+    for result in comparison_results:
+        print(f"Comparing {result['primary_file']} and {result['secondary_file']}")
+        print(
+            "Perpendicular baseline magnitude (m):",
+            round(result["perpendicular_baseline_magnitude"], 2),
+        )
+        print("Temporal baseline (days):", round(result["temporal_baseline_days"], 2))
+        print("\n")
