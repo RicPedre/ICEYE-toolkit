@@ -144,15 +144,12 @@ if __name__ == "__main__":
     print("secondary acquisition time:", time_secondary)
     print("secondary position:", P_secondary)
 
-    # Suppose the imaging geometry parameters differ:
-    # For the primary acquisition:
-    incidence_primary = 23.5  # degrees (example)
-    azimuth_primary = 180.0  # degrees (example)
-    u_LOS_primary = compute_u_LOS(incidence_primary, azimuth_primary)
+    # Extract incidence and azimuth angles for primary and secondary.
+    incidence_primary, azimuth_primary = extract_angles(primary_metadata_file)
+    incidence_secondary, azimuth_secondary = extract_angles(secondary_metadata_file)
 
-    # For the secondary acquisition:
-    incidence_secondary = 24.0  # degrees (example slight change)
-    azimuth_secondary = 182.0  # degrees (example slight change)
+    # Calculation of the LoS vectors
+    u_LOS_primary = compute_u_LOS(incidence_primary, azimuth_primary)
     u_LOS_secondary = compute_u_LOS(incidence_secondary, azimuth_secondary)
 
     # Compute the average LOS vector to use as the common reference.
