@@ -3,6 +3,8 @@ import numpy as np
 import math
 import os
 from datetime import datetime
+import csv
+import matplotlib.pyplot as plt
 
 
 def extract_state_vector(xml_file, ref="center"):
@@ -141,10 +143,11 @@ def get_xml_files(directory):
 
 if __name__ == "__main__":
     # Directory containing the metadata XML files.
-    directory = "input_data"
+    input_directory = "input_data"
+    result_directory = "results"
 
     # Get all XML files in the directory.
-    xml_files = get_xml_files(directory)
+    xml_files = get_xml_files(input_directory)
 
     # List to store comparison results.
     comparison_results = []
@@ -198,12 +201,43 @@ if __name__ == "__main__":
                 }
             )
 
-    # Print all comparison results.
-    for result in comparison_results:
-        print(f"Comparing {result['primary_file']} and {result['secondary_file']}")
-        print(
-            "Perpendicular baseline magnitude (m):",
-            round(result["perpendicular_baseline_magnitude"], 2),
+    # Save results to a CSV file.
+    csv_file = os.path.join(result_directory, "comparison_results.csv")
+    with open(csv_file, mode="w", newline="") as file:
+        writer = csv.DictWriter(
+            file,
+            fieldnames=[
+                "primary_file",
+                "secondary_file",
+                "perpendicular_baseline_magnitude",
+                "temporal_baseline_days",
+            ],
         )
-        print("Temporal baseline (days):", round(result["temporal_baseline_days"], 2))
-        print("\n")
+        writer.writeheader()
+        for result in comparison_results:
+            writer.writerow(result)
+
+    # # Print all comparison results.
+    # for result in comparison_results:
+    #     print(f"Comparing {result['primary_file']} and {result['secondary_file']}")
+    #     print(
+    #         "Perpendicular baseline magnitude (m):",
+    #         round(result["perpendicular_baseline_magnitude"], 2),
+    #     )
+    #     print("Temporal baseline (days):", round(result["temporal_baseline_days"], 2))
+    #     print("\n")
+
+    # Create a graph.
+    temporal_baselines = [
+        result["temporal_baseline_days"] for result in comparison_results
+    ]
+    perpendicular_baselines = [
+        result["perpendicular_baseline_magnitude"] for result in comparison_results
+    ]
+
+    plt.scatter(temporal_baselines, perpendicular_baselines)
+    plt.xlabel("Temporal Baseline (days)")
+    plt.ylabel("Perpendicular Baseline Magnitude (m)")
+    plt.title("Temporal Baseline vs Perpendicular Baseline Magnitude")
+    plt.grid(True)
+    plt.savefig(os.path.join(result_directory, "baseline_graph.png"))
