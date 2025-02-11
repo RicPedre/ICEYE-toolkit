@@ -5,6 +5,7 @@ import os
 from datetime import datetime
 import csv
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 
 def extract_state_vector(xml_file, ref="center"):
@@ -153,7 +154,7 @@ if __name__ == "__main__":
     comparison_results = []
 
     # Compare each pair of XML files.
-    for i in range(len(xml_files)):
+    for i in tqdm(range(len(xml_files)), desc="Processing files"):
         for j in range(i + 1, len(xml_files)):
             primary_metadata_file = xml_files[i]
             secondary_metadata_file = xml_files[j]
