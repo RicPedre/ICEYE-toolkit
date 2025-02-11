@@ -129,39 +129,60 @@ def compute_perpendicular_baseline(P1, P2, u_LOS):
     return B_total, B_perp, B_perp_norm
 
 
-# Example usage:
+def get_xml_files(directory):
+    """
+    Get a list of all XML files in the given directory.
+    """
+    return [
+        os.path.join(directory, f) for f in os.listdir(directory) if f.endswith(".xml")
+    ]
+
+
 if __name__ == "__main__":
-    # Paths to metadata XML files for primary and secondary acquisitions.
-    primary_metadata_file = "ICEYE_X7_SLC_SLEA_4007993_20240324T123548.xml"
-    secondary_metadata_file = "ICEYE_X8_SLC_SLEA_4006099_20240322T195711.xml"
 
-    # Extract state vectors for primary and secondary.
-    P_primary, time_primary = extract_state_vector(primary_metadata_file)
-    P_secondary, time_secondary = extract_state_vector(secondary_metadata_file)
+    # Directory containing the metadata XML files.
+    directory = "input_data"
 
-    print("primary acquisition time:", time_primary)
-    print("primary position:", P_primary)
-    print("secondary acquisition time:", time_secondary)
-    print("secondary position:", P_secondary)
+    # Get all XML files in the directory.
+    xml_files = get_xml_files(directory)
 
-    # Extract incidence and azimuth angles for primary and secondary.
-    incidence_primary, azimuth_primary = extract_angles(primary_metadata_file)
-    incidence_secondary, azimuth_secondary = extract_angles(secondary_metadata_file)
+    # Iterate over all pairs of XML files.
+    for i in range(len(xml_files)):
+        for j in range(i + 1, len(xml_files)):
+            primary_metadata_file = xml_files[i]
+            secondary_metadata_file = xml_files[j]
 
-    # Calculation of the LoS vectors
-    u_LOS_primary = compute_u_LOS(incidence_primary, azimuth_primary)
-    u_LOS_secondary = compute_u_LOS(incidence_secondary, azimuth_secondary)
+            # Extract state vectors for primary and secondary.
+            P_primary, time_primary = extract_state_vector(primary_metadata_file)
+            P_secondary, time_secondary = extract_state_vector(secondary_metadata_file)
 
-    # Compute the average LOS vector to use as the common reference.
-    u_LOS_avg = average_LOS(u_LOS_primary, u_LOS_secondary)
-    print("primary LOS vector:", u_LOS_primary)
-    print("secondary LOS vector:", u_LOS_secondary)
-    print("Average LOS vector:", u_LOS_avg)
+            print(f"Comparing {primary_metadata_file} and {secondary_metadata_file}")
+            print("primary acquisition time:", time_primary)
+            print("primary position:", P_primary)
+            print("secondary acquisition time:", time_secondary)
+            print("secondary position:", P_secondary)
 
-    # Compute the baseline and its perpendicular component using the average LOS.
-    B_total, B_perp_vector, B_perp_magnitude = compute_perpendicular_baseline(
-        P_primary, P_secondary, u_LOS_avg
-    )
-    print("Total baseline (m):", B_total)
-    print("Perpendicular baseline vector (m):", B_perp_vector)
-    print("Perpendicular baseline magnitude (m):", B_perp_magnitude)
+            # Extract incidence and azimuth angles for primary and secondary.
+            incidence_primary, azimuth_primary = extract_angles(primary_metadata_file)
+            incidence_secondary, azimuth_secondary = extract_angles(
+                secondary_metadata_file
+            )
+
+            # Calculation of the LoS vectors
+            u_LOS_primary = compute_u_LOS(incidence_primary, azimuth_primary)
+            u_LOS_secondary = compute_u_LOS(incidence_secondary, azimuth_secondary)
+
+            # Compute the average LOS vector to use as the common reference.
+            u_LOS_avg = average_LOS(u_LOS_primary, u_LOS_secondary)
+            print("primary LOS vector:", u_LOS_primary)
+            print("secondary LOS vector:", u_LOS_secondary)
+            print("Average LOS vector:", u_LOS_avg)
+
+            # Compute the baseline and its perpendicular component using the average LOS.
+            B_total, B_perp_vector, B_perp_magnitude = compute_perpendicular_baseline(
+                P_primary, P_secondary, u_LOS_avg
+            )
+            print("Total baseline (m):", B_total)
+            print("Perpendicular baseline vector (m):", B_perp_vector)
+            print("Perpendicular baseline magnitude (m):", B_perp_magnitude)
+            print("\n")
