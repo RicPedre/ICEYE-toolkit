@@ -22,7 +22,6 @@ def extract_state_vector(xml_file, ref="center"):
       position: A numpy array containing the 3D position [posX, posY, posZ].
       time_str: The timestamp string for the selected state vector.
 
-    (See ICEYE Product Metadata documentation for the list of metadata elements :contentReference[oaicite:2]{index=2}.)
     """
     if not os.path.exists(xml_file):
         raise FileNotFoundError(f"File not found: {xml_file}")
@@ -54,19 +53,18 @@ def extract_state_vector(xml_file, ref="center"):
     return np.array([posX, posY, posZ]), time_str
 
 
-def extract_angles(xml_file):
+def extract_angles(xml_file: str):
     """
     Extract incidence and azimuth angles from an ICEYE metadata XML file.
     This example assumes that the metadata contains the incidence and azimuth angles under the tag 'Look'.
 
     Parameters:
-      xml_file: Path to the metadata XML file.
+      xml_file (str): Path to the metadata XML file.
 
     Returns:
       incidence_angle: The incidence angle in degrees.
       azimuth_angle: The azimuth angle in degrees.
 
-    (See ICEYE Product Metadata documentation for the list of metadata elements :contentReference[oaicite:2]{index=2}.)
     """
     if not os.path.exists(xml_file):
         raise FileNotFoundError(f"File not found: {xml_file}")
@@ -80,7 +78,7 @@ def extract_angles(xml_file):
     # Extract incidence center and satellite look angle from the XML elements.
     try:
         incidence_angle = float(root.find(".//incidence_center").text)
-        azimuth_angle = float(root.find(".//satellite_look_angle").text)
+        azimuth_angle = float(root.find(".//heading").text)
     except AttributeError as e:
         raise ValueError(f"Missing expected XML elements: {e}")
 
@@ -176,9 +174,9 @@ if __name__ == "__main__":
             # Compute the average LOS vector to use as the common reference.
             u_LOS_avg = average_LOS(u_LOS_primary, u_LOS_secondary)
 
-            # Compute the baseline and its perpendicular component using the average LOS.
+            # Compute the baseline and its perpendicular component using the average LOS. chnaged to the primary to see what happens
             B_total, B_perp_vector, B_perp_magnitude = compute_perpendicular_baseline(
-                P_primary, P_secondary, u_LOS_avg
+                P_primary, P_secondary, u_LOS_primary
             )
 
             # Convert time strings to datetime objects
