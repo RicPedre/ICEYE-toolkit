@@ -187,7 +187,7 @@ if __name__ == "__main__":
                 time_secondary, "%Y-%m-%dT%H:%M:%S.%f"
             )
 
-            # Compute temporal baseline
+            # Compute temporal baseline in days (assuming 1 day = 86400 seconds).
             temporal_baseline = abs(
                 (time_primary_dt - time_secondary_dt).total_seconds() / 86400
             )
