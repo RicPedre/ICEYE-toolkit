@@ -198,19 +198,15 @@ if __name__ == "__main__":
             P_primary, u_flight_primary, time_primary = extract_state_vector(
                 primary_metadata_file
             )
-            P_secondary, u_flight_secondary, time_secondary = extract_state_vector(
+            P_secondary, _, time_secondary = extract_state_vector(
                 secondary_metadata_file
             )
 
             # Extract incidence and azimuth angles for primary and secondary.
             incidence_primary, azimuth_primary = extract_angles(primary_metadata_file)
-            incidence_secondary, azimuth_secondary = extract_angles(
-                secondary_metadata_file
-            )
 
             # Calculation of the LoS vectors
             u_LOS_primary = compute_u_LOS(incidence_primary, azimuth_primary)
-            u_LOS_secondary = compute_u_LOS(incidence_secondary, azimuth_secondary)
 
             # Compute the baseline and its perpendicular component using the average LOS. chnaged to the primary to see what happens
             B_total, B_perp_vector, B_perp_magnitude, B_perp_abs = (
