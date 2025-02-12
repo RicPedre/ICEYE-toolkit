@@ -22,7 +22,7 @@ if __name__ == "__main__":
         times = [time_primary_dt, None]
         baselines_perpendicular = [0, None]
 
-        plt.figure(figsize=(10, 6))
+        plt.figure(figsize=(12, 8))
 
         for j in range(len(xml_files)):
             secondary = xml_files[j]
@@ -46,33 +46,31 @@ if __name__ == "__main__":
             times[1] = time_secondary_dt
             baselines_perpendicular[1] = B_perp_sign
 
-            plt.plot(times, baselines_perpendicular, label=f"Secondary Image {j+1}")
+            plt.plot(
+                times,
+                baselines_perpendicular,
+                marker="o",
+                mfc="blue",
+                mec="blue",
+                color="blue",
+                linestyle="-",
+                label="Secondary Image" if j == 0 else "",
+            )
+
+        # Highlight the primary image
+        plt.scatter(
+            time_primary_dt, 0, color="red", s=100, zorder=5, label="Primary Image"
+        )
+        plt.axvline(x=time_primary_dt, color="red", linestyle="--")
+        plt.axhline(y=0, color="red", linestyle="--")
+
+        plt.xlabel("Time of Acquisition", fontsize=14)
+        plt.ylabel("Perpendicular Baseline", fontsize=14)
+        plt.title(f"Scatter Plot for Primary Image {i+1}", fontsize=16)
+        plt.grid(True)
+        plt.xticks(rotation=45)
+        plt.legend()
+        plt.tight_layout()
 
         plt.savefig(f"{result_directory}/scatter_plot_primary_{i+1}.png")
         plt.close()
-
-        # # Plot the scatter plot
-        # plt.scatter(times_secondary, baselines_perpendicular, label="Secondary Images")
-        # plt.scatter(time_primary_dt, 0, color="r", label="Primary Image")
-        # plt.xlabel("Time of Acquisition (Secondary)")
-        # plt.ylabel("Perpendicular Baseline")
-        # plt.title(f"Scatter Plot for Primary Image {i+1}")
-        # plt.legend()
-        # plt.grid(True)
-
-        # # Set the limits to center the primary data in the plot for better visualization
-        # if times_secondary:
-        #     plt.xlim(
-        #         min(times_secondary + [time_primary_dt]),
-        #         max(times_secondary + [time_primary_dt]),
-        #     )
-        # else:
-        #     plt.xlim(time_primary_dt, time_primary_dt)
-
-        # if valid_baselines:
-        #     plt.ylim(min(valid_baselines), max(valid_baselines))
-        # else:
-        #     plt.ylim(0, 0)
-
-        # plt.savefig(f"{result_directory}/scatter_plot_primary_{i+1}.png")
-        # plt.close()
