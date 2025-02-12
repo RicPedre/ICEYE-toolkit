@@ -13,7 +13,7 @@ def extract_state_vector(xml_file: str, ref: str = "center"):
     Extract a state vector (satellite position) from an ICEYE metadata XML file.
     This example assumes that the metadata contains a set of state vectors under the tag 'Orbit_State_Vectors'
     with sub-elements for the time (state_vector_time_utc), position components (posX, posY, posZ)
-    and velocity components (posX, posY, posZ).
+    and velocity components (velX, velY, velZ).
 
     Parameters:
       xml_file (str): Path to the metadata XML file.
@@ -52,7 +52,7 @@ def extract_state_vector(xml_file: str, ref: str = "center"):
     except AttributeError as e:
         raise ValueError(f"Missing expected XML elements: {e}")
 
-    # extract the velocity components
+    # Extract the velocity components
     try:
         velX = float(sv.find("velX").text)
         velY = float(sv.find("velY").text)
@@ -154,18 +154,17 @@ def compute_perpendicular_baseline(
     B_total = np.linalg.norm(B)
 
     # Compute the perpendicular component of the baseline.
-    # B_parallel = np.dot(B, u_LOS)
-    # B_perp = np.sqrt((B_total**2) - B_parallel**2)
-    # B_perp_norm = np.linalg.norm(B_perp) * sign
+    B_parallel = np.dot(B, u_LOS)
+    B_perp = B - B_parallel * u_LOS
 
     # Another way to calculate the perpendicular component
     theta = math.acos(np.dot(B, u_LOS) / B_total)
     B_perp = B * math.sin(theta)
     sign = np.sign(np.dot(B_perp, u_flight))
     B_perp_magnitude = np.linalg.norm(B_perp)
-    B_perp_sign = B_perp_magnitude * sign
+    B_perp_signed_magnitude = B_perp_magnitude * sign
 
-    return B_total, B_perp, B_perp_magnitude, B_perp_sign
+    return B_total, B_perp, B_perp_magnitude, B_perp_signed_magnitude
 
 
 def get_xml_files(directory):
@@ -208,8 +207,8 @@ if __name__ == "__main__":
             # Calculation of the LoS vectors
             u_LOS_primary = compute_u_LOS(incidence_primary, azimuth_primary)
 
-            # Compute the baseline and its perpendicular component using the average LOS. chnaged to the primary to see what happens
-            B_total, B_perp_vector, B_perp_magnitude, B_perp_abs = (
+            # Compute the baseline and its perpendicular component using the primary LOS.
+            B_total, B_perp_vector, B_perp_magnitude, B_perp_signed_magnitude = (
                 compute_perpendicular_baseline(
                     P_primary, P_secondary, u_LOS_primary, u_flight_primary
                 )
