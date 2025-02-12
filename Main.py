@@ -12,7 +12,8 @@ def extract_state_vector(xml_file: str, ref: str = "center"):
     """
     Extract a state vector (satellite position) from an ICEYE metadata XML file.
     This example assumes that the metadata contains a set of state vectors under the tag 'Orbit_State_Vectors'
-    with sub-elements for the time (state_vector_time_utc) and position components (posX, posY, posZ).
+    with sub-elements for the time (state_vector_time_utc), position components (posX, posY, posZ)
+    and velocity components (posX, posY, posZ).
 
     Parameters:
       xml_file (str): Path to the metadata XML file.
@@ -20,6 +21,7 @@ def extract_state_vector(xml_file: str, ref: str = "center"):
 
     Returns:
       position (np.ndarray): A numpy array containing the 3D position [posX, posY, posZ].
+      flight_direction (np.ndarray): The unit vector representing the flight direction.
       time_str (str): The timestamp string for the selected state vector.
 
     """
@@ -50,7 +52,19 @@ def extract_state_vector(xml_file: str, ref: str = "center"):
     except AttributeError as e:
         raise ValueError(f"Missing expected XML elements: {e}")
 
-    return np.array([posX, posY, posZ]), time_str
+    # extract the velocity components
+    try:
+        velX = float(sv.find("velX").text)
+        velY = float(sv.find("velY").text)
+        velZ = float(sv.find("velZ").text)
+    except AttributeError as e:
+        raise ValueError(f"Missing expected XML elements: {e}")
+
+    # compute the flight direction unit vector:
+    velocity_vector = np.array([velX, velY, velZ])
+    flight_direction = velocity_vector / np.linalg.norm(velocity_vector)
+
+    return np.array([posX, posY, posZ]), flight_direction, time_str
 
 
 def extract_angles(xml_file: str):
@@ -114,16 +128,9 @@ def compute_u_LOS(incidence_angle_deg: float, azimuth_angle_deg: float):
     return u / np.linalg.norm(u)
 
 
-def average_LOS(u1, u2):
-    """
-    Compute the average LOS vector from two LOS vectors.
-    This simple average is then normalized.
-    """
-    u_avg = u1 + u2
-    return u_avg / np.linalg.norm(u_avg)
-
-
-def compute_perpendicular_baseline(P1: np.ndarray, P2: np.ndarray, u_LOS: np.ndarray):
+def compute_perpendicular_baseline(
+    P1: np.ndarray, P2: np.ndarray, u_LOS: np.ndarray, u_flight: np.ndarray
+):
     """
     Computes the full baseline vector and then its perpendicular component, following the formulas:
     B = P2 - P1
@@ -147,16 +154,18 @@ def compute_perpendicular_baseline(P1: np.ndarray, P2: np.ndarray, u_LOS: np.nda
     B_total = np.linalg.norm(B)
 
     # Compute the perpendicular component of the baseline.
-    B_parallel = np.dot(B, u_LOS)
-    B_perp = np.sqrt((B_total**2) - B_parallel**2)
-    B_perp_norm = np.linalg.norm(B_perp)
+    # B_parallel = np.dot(B, u_LOS)
+    # B_perp = np.sqrt((B_total**2) - B_parallel**2)
+    # B_perp_norm = np.linalg.norm(B_perp) * sign
 
     # Another way to calculate the perpendicular component
-    # theta = math.acos(np.dot(B, u_LOS) / B_total)
-    # B_perp = B * math.sin(theta)
-    # B_perp_norm1 = np.linalg.norm(B_perp)
+    theta = math.acos(np.dot(B, u_LOS) / B_total)
+    B_perp = B * math.sin(theta)
+    sign = np.sign(np.dot(B_perp, u_flight))
+    B_perp_magnitude = np.linalg.norm(B_perp)
+    B_perp_sign = B_perp_magnitude * sign
 
-    return B_total, B_perp, B_perp_norm
+    return B_total, B_perp, B_perp_magnitude, B_perp_sign
 
 
 def get_xml_files(directory):
@@ -186,8 +195,12 @@ if __name__ == "__main__":
             secondary_metadata_file = xml_files[j]
 
             # Extract state vectors for primary and secondary.
-            P_primary, time_primary = extract_state_vector(primary_metadata_file)
-            P_secondary, time_secondary = extract_state_vector(secondary_metadata_file)
+            P_primary, u_flight_primary, time_primary = extract_state_vector(
+                primary_metadata_file
+            )
+            P_secondary, u_flight_secondary, time_secondary = extract_state_vector(
+                secondary_metadata_file
+            )
 
             # Extract incidence and azimuth angles for primary and secondary.
             incidence_primary, azimuth_primary = extract_angles(primary_metadata_file)
@@ -199,12 +212,11 @@ if __name__ == "__main__":
             u_LOS_primary = compute_u_LOS(incidence_primary, azimuth_primary)
             u_LOS_secondary = compute_u_LOS(incidence_secondary, azimuth_secondary)
 
-            # Compute the average LOS vector to use as the common reference.
-            u_LOS_avg = average_LOS(u_LOS_primary, u_LOS_secondary)
-
             # Compute the baseline and its perpendicular component using the average LOS. chnaged to the primary to see what happens
-            B_total, B_perp_vector, B_perp_magnitude = compute_perpendicular_baseline(
-                P_primary, P_secondary, u_LOS_primary
+            B_total, B_perp_vector, B_perp_magnitude, B_perp_abs = (
+                compute_perpendicular_baseline(
+                    P_primary, P_secondary, u_LOS_primary, u_flight_primary
+                )
             )
 
             # Convert time strings to datetime objects
@@ -268,3 +280,4 @@ if __name__ == "__main__":
     plt.title("Temporal Baseline vs Perpendicular Baseline Magnitude")
     plt.grid(True)
     plt.savefig(os.path.join(result_directory, "baseline_graph.png"))
+    plt.close()
