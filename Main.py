@@ -8,19 +8,19 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 
 
-def extract_state_vector(xml_file, ref="center"):
+def extract_state_vector(xml_file: str, ref: str = "center"):
     """
     Extract a state vector (satellite position) from an ICEYE metadata XML file.
     This example assumes that the metadata contains a set of state vectors under the tag 'Orbit_State_Vectors'
     with sub-elements for the time (state_vector_time_utc) and position components (posX, posY, posZ).
 
     Parameters:
-      xml_file: Path to the metadata XML file.
-      ref: Reference selection; here we choose the middle state vector (i.e. scene center).
+      xml_file (str): Path to the metadata XML file.
+      ref (str): Reference selection; here we choose the middle state vector (i.e. scene center).
 
     Returns:
-      position: A numpy array containing the 3D position [posX, posY, posZ].
-      time_str: The timestamp string for the selected state vector.
+      position (np.ndarray): A numpy array containing the 3D position [posX, posY, posZ].
+      time_str (str): The timestamp string for the selected state vector.
 
     """
     if not os.path.exists(xml_file):
@@ -62,8 +62,8 @@ def extract_angles(xml_file: str):
       xml_file (str): Path to the metadata XML file.
 
     Returns:
-      incidence_angle: The incidence angle in degrees.
-      azimuth_angle: The azimuth angle in degrees.
+      incidence_angle (float): The incidence angle in degrees.
+      azimuth_angle (float): The azimuth angle in degrees.
 
     """
     if not os.path.exists(xml_file):
@@ -85,7 +85,7 @@ def extract_angles(xml_file: str):
     return incidence_angle, azimuth_angle
 
 
-def compute_u_LOS(incidence_angle_deg, azimuth_angle_deg):
+def compute_u_LOS(incidence_angle_deg: float, azimuth_angle_deg: float):
     """
     Computes the LOS unit vector using incidence and azimuth angles.
     Formula:
@@ -93,6 +93,14 @@ def compute_u_LOS(incidence_angle_deg, azimuth_angle_deg):
                  sin(theta)*sin(phi),
                  cos(theta) ]
     where theta is the incidence angle (in radians) and phi is the azimuth angle (in radians).
+
+    Parameters:
+        incidence_angle_deg (float): The incidence angle in degrees.
+        azimuth_angle_deg (float): The azimuth angle in degrees.
+
+    Returns:
+        u (np.ndarray): The unit vector representing the line-of-sight direction.
+
     """
     theta = math.radians(incidence_angle_deg)
     phi = math.radians(azimuth_angle_deg)
@@ -115,19 +123,39 @@ def average_LOS(u1, u2):
     return u_avg / np.linalg.norm(u_avg)
 
 
-def compute_perpendicular_baseline(P1, P2, u_LOS):
+def compute_perpendicular_baseline(P1: np.ndarray, P2: np.ndarray, u_LOS: np.ndarray):
     """
-    Computes the full baseline vector and then its perpendicular component.
+    Computes the full baseline vector and then its perpendicular component, following the formulas:
     B = P2 - P1
-    B_parallel = (B ⋅ u_LOS) * u_LOS
-    B_perp = B - B_parallel
-    Returns the full baseline magnitude, the perpendicular vector, and its magnitude.
+    B_parallel = (B ⋅ u_LOS)
+    B_perp = square_root( ||B||^2 - B_parallel^2 )
+
+    Parameters:
+        P1 (np.ndarray): The position vector of the first satellite.
+        P2 (np.ndarray): The position vector of the second satellite.
+        u_LOS (np.ndarray): The line-of-sight unit vector of the primary satellite.
+
+    Returns:
+        B_total (float): The full baseline magnitude.
+        B_perp (np.ndarray): The perpendicular vector.
+        B_perp_norm (float): The magnitude of the perpendicular vector.
+
     """
+
+    # Compute the full baseline vector.
     B = P2 - P1
     B_total = np.linalg.norm(B)
-    B_parallel = np.dot(B, u_LOS) * u_LOS
-    B_perp = B - B_parallel
+
+    # Compute the perpendicular component of the baseline.
+    B_parallel = np.dot(B, u_LOS)
+    B_perp = np.sqrt((B_total**2) - B_parallel**2)
     B_perp_norm = np.linalg.norm(B_perp)
+
+    # Another way to calculate the perpendicular component
+    # theta = math.acos(np.dot(B, u_LOS) / B_total)
+    # B_perp = B * math.sin(theta)
+    # B_perp_norm1 = np.linalg.norm(B_perp)
+
     return B_total, B_perp, B_perp_norm
 
 
