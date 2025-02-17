@@ -184,11 +184,16 @@ if __name__ == "__main__":
     # Get all XML files in the directory.
     xml_files = get_xml_files(input_directory)
 
+    target_baseline = 200000  # Target perpendicular baseline magnitude in meters.
+
     # List to store comparison results.
     comparison_results = []
 
+    plt.figure(figsize=(12, 8))
+
     # Compare each pair of XML files.
     for i in tqdm(range(len(xml_files)), desc="Processing files"):
+
         for j in range(i + 1, len(xml_files)):
             primary_metadata_file = xml_files[i]
             secondary_metadata_file = xml_files[j]
@@ -269,7 +274,11 @@ if __name__ == "__main__":
         result["perpendicular_baseline_magnitude"] for result in comparison_results
     ]
 
-    plt.scatter(temporal_baselines, perpendicular_baselines)
+    colors = [
+        "green" if baseline < target_baseline else "red"
+        for baseline in perpendicular_baselines
+    ]
+    plt.scatter(temporal_baselines, perpendicular_baselines, c=colors)
     plt.xlabel("Temporal Baseline (days)")
     plt.ylabel("Perpendicular Baseline Magnitude (m)")
     plt.title("Temporal Baseline vs Perpendicular Baseline Magnitude")
