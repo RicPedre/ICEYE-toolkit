@@ -27,8 +27,8 @@ def extract_rpc_data(xml_file, output_file):
 
 if __name__ == "__main__":
     # Define the input and output folders
-    input_folder = "/home/ubuntu/code/ICEYE_baseline_Extractor/input_data"
-    output_folder = "/home/ubuntu/code/ICEYE_baseline_Extractor/rpc_extracted_data"
+    input_folder = "input_data"
+    output_folder = "rpc_extracted_data"
 
     # Create the output folder if it doesn't exist
     if not os.path.exists(output_folder):
