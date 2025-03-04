@@ -39,7 +39,7 @@ if __name__ == "__main__":
         if filename.endswith(".xml"):
             xml_file = os.path.join(input_folder, filename)
             output_file = os.path.join(
-                output_folder, f"{os.path.splitext(filename)[0]}_rpc_data.txt"
+                output_folder, f"{os.path.splitext(filename)[0]}.txt"
             )
             # Extract RPC data from the XML file and write it to the output file
             extract_rpc_data(xml_file, output_file)
