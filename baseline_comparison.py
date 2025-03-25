@@ -81,14 +81,14 @@ def extract_state_vectors(xml_file: str):
 
 def extract_angles(xml_file: str):
     """
-    Extract incidence and azimuth angles from an ICEYE metadata XML file.
-    This example assumes that the metadata contains the incidence and azimuth angles under the tag 'Look'.
+    Extract look and azimuth angles from an ICEYE metadata XML file.
+    This example assumes that the metadata contains the look and azimuth angles under the tag 'Look'.
 
     Parameters:
       xml_file (str): Path to the metadata XML file.
 
     Returns:
-      incidence_angle (float): The incidence angle in degrees.
+      look_angle (float): The look angle in degrees.
       azimuth_angle (float): The azimuth angle in degrees.
 
     """
@@ -101,40 +101,40 @@ def extract_angles(xml_file: str):
         raise ValueError(f"Error parsing XML file: {e}")
 
     root = tree.getroot()
-    # Extract incidence center and satellite look angle from the XML elements.
+    # Extract look center and satellite look angle from the XML elements.
     try:
-        incidence_angle = float(root.find(".//incidence_center").text)
+        look_angle = float(root.find(".//satellite_look_angle").text)
         azimuth_angle = float(root.find(".//heading").text)
     except AttributeError as e:
         raise ValueError(f"Missing expected XML elements: {e}")
 
-    return incidence_angle, azimuth_angle
+    return look_angle, azimuth_angle
 
 
-def compute_u_LOS(incidence_angle_deg: float, azimuth_angle_deg: float):
+def compute_u_LOS(look_angle_deg: float, azimuth_angle_deg: float):
     """
-    Computes the LOS unit vector using incidence and azimuth angles.
+    Computes the LOS unit vector using look and azimuth angles.
     Formula:
        u_LOS = [ sin(theta)*cos(phi),
                  sin(theta)*sin(phi),
                  cos(theta) ]
-    where theta is the incidence angle (in radians) and phi is the azimuth angle (in radians).
+    where theta is the look angle (in radians) and phi is the azimuth angle (in radians).
 
     Parameters:
-        incidence_angle_deg (float): The incidence angle in degrees.
+        look_angle_deg (float): The look angle in degrees.
         azimuth_angle_deg (float): The azimuth angle in degrees.
 
     Returns:
         u (np.ndarray): The unit vector representing the line-of-sight direction.
 
     """
-    theta = math.radians(incidence_angle_deg)
+    theta = math.radians(look_angle_deg)
     phi = math.radians(azimuth_angle_deg)
     u = np.array(
         [
-            math.sin(theta) * math.cos(phi),
-            math.sin(theta) * math.sin(phi),
-            math.cos(theta),
+            math.cos(theta) * math.sin(phi),
+            math.cos(theta) * math.cos(phi),
+            math.sin(theta),
         ]
     )
     return u / np.linalg.norm(u)
@@ -221,25 +221,29 @@ if __name__ == "__main__":
             min_result = None
             max_result = None
 
+            # Extract look and azimuth angles for the primary state vector.
+            look_primary, azimuth_primary = extract_angles(primary_metadata_file)
+
+            # Extract look and azimuth angles for the secondary state vector.
+            look_secondary, azimuth_secondary = extract_angles(secondary_metadata_file)
+
+            diff_look = abs(look_primary - look_secondary)
+            diff_azimuth = abs(azimuth_primary - azimuth_secondary)
+
+            # Calculate the LoS vector for the primary state vector.
+            u_LOS_primary = compute_u_LOS(look_primary, azimuth_primary)
+
             # Iterate over each state vector in the metadata file
             for k, (P_primary, u_flight_primary, time_primary) in enumerate(
                 zip(P_primary_list, u_flight_primary_list, time_primary_list)
             ):
                 if k >= len(P_secondary_list):
                     # Skip if the secondary list has fewer state vectors.
-                    print("skip")
                     break
 
+                # Get the corresponding state vector from the secondary metadata.
                 P_secondary = P_secondary_list[k]
                 time_secondary = time_secondary_list[k]
-
-                # Extract incidence and azimuth angles for the primary state vector.
-                incidence_primary, azimuth_primary = extract_angles(
-                    primary_metadata_file
-                )
-
-                # Calculate the LoS vector for the primary state vector.
-                u_LOS_primary = compute_u_LOS(incidence_primary, azimuth_primary)
 
                 # Compute the baseline and its perpendicular component.
                 (
@@ -281,6 +285,8 @@ if __name__ == "__main__":
                     "maximum_state_vector_index": max_state_vector_index,
                     "maximum_perpendicular_baseline_magnitude": max_perpendicular_baseline,
                     "temporal_baseline_days": temporal_baseline,
+                    "diff_look": diff_look,
+                    "diff_azimuth": diff_azimuth,
                 }
             )
 
@@ -298,6 +304,8 @@ if __name__ == "__main__":
                 "minimum_perpendicular_baseline_magnitude",
                 "maximum_state_vector_index",
                 "maximum_perpendicular_baseline_magnitude",
+                "diff_look",
+                "diff_azimuth",
             ],
         )
         writer.writeheader()
