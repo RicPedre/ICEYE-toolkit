@@ -189,10 +189,42 @@ def get_xml_files(directory):
     ]
 
 
+def extract_orbit_direction(xml_file: str):
+    """
+    Extract the orbit direction from an ICEYE metadata XML file.
+    This example assumes that the metadata contains the orbit direction under the tag 'Orbit_Direction'.
+
+    Parameters:
+      xml_file (str): Path to the metadata XML file.
+
+    Returns:
+      orbit_direction (str): The orbit direction ('ASCENDING' or 'DESCENDING').
+
+    """
+    if not os.path.exists(xml_file):
+        raise FileNotFoundError(f"File not found: {xml_file}")
+
+    try:
+        tree = ET.parse(xml_file)
+    except ET.ParseError as e:
+        raise ValueError(f"Error parsing XML file: {e}")
+
+    root = tree.getroot()
+    # Extract the orbit direction from the XML elements.
+    try:
+        orbit_direction = root.find(".//orbit_direction").text
+    except AttributeError as e:
+        raise ValueError(f"Missing expected XML elements: {e}")
+
+    return orbit_direction
+
+
 if __name__ == "__main__":
     # Directory containing the metadata XML files.
     input_directory = "input_data"
     result_directory = "results"
+
+    only_check_same_orbit_direction = True
 
     # Get all XML files in the directory.
     xml_files = get_xml_files(input_directory)
@@ -206,6 +238,15 @@ if __name__ == "__main__":
         for j in range(i + 1, len(xml_files)):
             primary_metadata_file = xml_files[i]
             secondary_metadata_file = xml_files[j]
+
+            primary_orbit_direction = extract_orbit_direction(primary_metadata_file)
+            secondary_orbit_direction = extract_orbit_direction(secondary_metadata_file)
+
+            if (
+                only_check_same_orbit_direction
+                and primary_orbit_direction != secondary_orbit_direction
+            ):
+                continue
 
             # Extract all state vectors for primary and secondary.
             P_primary_list, u_flight_primary_list, time_primary_list = (
@@ -287,6 +328,7 @@ if __name__ == "__main__":
                     "temporal_baseline_days": temporal_baseline,
                     "diff_look": diff_look,
                     "diff_azimuth": diff_azimuth,
+                    "orbit_direction": primary_orbit_direction,
                 }
             )
 
@@ -306,6 +348,7 @@ if __name__ == "__main__":
                 "maximum_perpendicular_baseline_magnitude",
                 "diff_look",
                 "diff_azimuth",
+                "orbit_direction",
             ],
         )
         writer.writeheader()
