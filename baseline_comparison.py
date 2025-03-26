@@ -224,6 +224,7 @@ if __name__ == "__main__":
     input_directory = "input_data"
     result_directory = "results"
 
+    # run the program only on same orbut direction images. Make it False to run on all images.
     only_check_same_orbit_direction = True
 
     # Get all XML files in the directory.
