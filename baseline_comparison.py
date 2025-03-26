@@ -219,6 +219,86 @@ def extract_orbit_direction(xml_file: str):
     return orbit_direction
 
 
+def extract_critcal_baseline_data(xml_file: str):
+    """
+    Extract the data necessary for the calculation fo the critical baseline from an ICEYE metadata XML file.
+
+    The formula used is (B_crit = lambda * R * tan(gamma))/ 2 * Rr (Small, 1998)
+
+    Where:
+    B_crit = critical baseline
+    lambda = wavelength
+    R = Slant range
+    gamma = incidence angle
+    Rr = Slant Range resolution
+
+    Parameters:
+      xml_file (str): Path to the metadata XML file.
+
+    Returns:
+      critical_baseline_data (list of float): list of the parameter needed for the calculation of the critical baseline.
+
+    """
+    if not os.path.exists(xml_file):
+        raise FileNotFoundError(f"File not found: {xml_file}")
+
+    try:
+        tree = ET.parse(xml_file)
+    except ET.ParseError as e:
+        raise ValueError(f"Error parsing XML file: {e}")
+
+    root = tree.getroot()
+    # Extract the various values from the XML elements.
+    try:
+        frequency = float(root.find(".//carrier_frequency").text)  # in Hz
+        slant_range = float(
+            root.find(".//slant_range_to_first_pixel").text
+        )  # in meters
+        incidence_angle = float(root.find(".//incidence_near").text)  # in degrees
+        slant_range_resolution = float(
+            root.find(".//range_resolution_near").text
+        )  # in meters, beware that iceye metadata does not explain if it is gorund or slant, it is assumened to be slant
+    except AttributeError as e:
+        raise ValueError(f"Missing expected XML elements: {e}")
+    wavelength = 3e8 / frequency
+    critical_baseline = [
+        wavelength,
+        slant_range,
+        incidence_angle,
+        slant_range_resolution,
+    ]
+
+    return critical_baseline
+
+
+def critical_baseline_calculation(critical_baseline_data: list):
+    """
+    Calculate the critical baseline from the data extracted from the ICEYE metadata XML file.
+
+    The formula used is (B_crit = lambda * R * tan(gamma))/ 2 * Rr (Small, 1998)
+
+    Where:
+    B_crit = critical baseline
+    lambda = wavelength
+    R = Slant range
+    gamma = incidence angle
+    Rr = Slant Range resolution
+
+    Parameters:
+      critical_baseline_data (list of float): list of the parameter needed for the calculation of the critical baseline.
+
+    Returns:
+      critical_baseline (float): The critical baseline in meters.
+
+    """
+    lambda_ = critical_baseline_data[0]
+    R = critical_baseline_data[1]
+    gamma = math.radians(critical_baseline_data[2])
+    Rr = critical_baseline_data[3]
+    critical_baseline = (lambda_ * R * math.tan(gamma)) / (2 * Rr)
+    return critical_baseline
+
+
 if __name__ == "__main__":
     # Directory containing the metadata XML files.
     input_directory = "input_data"
