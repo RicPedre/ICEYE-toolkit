@@ -355,6 +355,22 @@ if __name__ == "__main__":
             # Calculate the LoS vector for the primary state vector.
             u_LOS_primary = compute_u_LOS(look_primary, azimuth_primary)
 
+            # Calculate the critical baseline for the primary radar image.
+            critical_baseline_data = extract_critcal_baseline_data(
+                primary_metadata_file
+            )
+            critical_baseline_primary = critical_baseline_calculation(
+                critical_baseline_data
+            )
+
+            # Calculate the critical baseline for the secondary radar image.
+            critical_baseline_data = extract_critcal_baseline_data(
+                secondary_metadata_file
+            )
+            critical_baseline_secondary = critical_baseline_calculation(
+                critical_baseline_data
+            )
+
             # Iterate over each state vector in the metadata file
             for k, (P_primary, u_flight_primary, time_primary) in enumerate(
                 zip(P_primary_list, u_flight_primary_list, time_primary_list)
@@ -410,6 +426,8 @@ if __name__ == "__main__":
                     "diff_look": diff_look,
                     "diff_azimuth": diff_azimuth,
                     "orbit_direction": primary_orbit_direction,
+                    "critical_baseline_primary": critical_baseline_primary,
+                    "critical_baseline_secondary": critical_baseline_secondary,
                 }
             )
 
@@ -430,6 +448,8 @@ if __name__ == "__main__":
                 "diff_look",
                 "diff_azimuth",
                 "orbit_direction",
+                "critical_baseline_primary",
+                "critical_baseline_secondary",
             ],
         )
         writer.writeheader()
