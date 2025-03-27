@@ -6,6 +6,7 @@ from datetime import datetime
 import csv
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+from matplotlib.lines import Line2D
 
 
 def extract_state_vectors(xml_file: str):
@@ -456,22 +457,71 @@ if __name__ == "__main__":
         for result in comparison_results:
             writer.writerow(result)
 
-    # # Create a graph.
-    # temporal_baselines = [
-    #     result["temporal_baseline_days"] for result in comparison_results
-    # ]
-    # perpendicular_baselines = [
-    #     result["perpendicular_baseline_magnitude"] for result in comparison_results
-    # ]
+    # Create a graph.
+    temporal_baselines = [
+        result["temporal_baseline_days"] for result in comparison_results
+    ]
+    perpendicular_baselines = [
+        result["minimum_perpendicular_baseline_magnitude"]
+        for result in comparison_results
+    ]
 
-    # colors = [
-    #     "green" if baseline < target_baseline else "red"
-    #     for baseline in perpendicular_baselines
-    # ]
-    # plt.scatter(temporal_baselines, perpendicular_baselines, c=colors)
-    # plt.xlabel("Temporal Baseline (days)")
-    # plt.ylabel("Perpendicular Baseline Magnitude (m)")
-    # plt.title("Temporal Baseline vs Perpendicular Baseline Magnitude")
-    # plt.grid(True)
-    # plt.savefig(os.path.join(result_directory, "baseline_graph.png"))
-    # plt.close()
+    colors = [
+        (
+            "green"
+            if result["minimum_perpendicular_baseline_magnitude"]
+            < result["critical_baseline_primary"]
+            and result["minimum_perpendicular_baseline_magnitude"]
+            < result["critical_baseline_secondary"]
+            else (
+                "yellow"
+                if result["minimum_perpendicular_baseline_magnitude"]
+                < result["critical_baseline_primary"]
+                or result["minimum_perpendicular_baseline_magnitude"]
+                < result["critical_baseline_secondary"]
+                else "red"
+            )
+        )
+        for result in comparison_results
+    ]
+    plt.scatter(temporal_baselines, perpendicular_baselines, c=colors)
+    plt.xlabel("Temporal Baseline (days)")
+    plt.ylabel("Minimum Perpendicular Baseline Magnitude (m)")
+    plt.title("Temporal Baseline vs Minimum Perpendicular Baseline Magnitude")
+    plt.grid(True)
+
+    # Add a legend for the colors.
+
+    legend_elements = [
+        Line2D(
+            [0],
+            [0],
+            marker="o",
+            color="w",
+            markerfacecolor="green",
+            markersize=10,
+            label="Below both critical baselines",
+        ),
+        Line2D(
+            [0],
+            [0],
+            marker="o",
+            color="w",
+            markerfacecolor="yellow",
+            markersize=10,
+            label="Below one critical baseline",
+        ),
+        Line2D(
+            [0],
+            [0],
+            marker="o",
+            color="w",
+            markerfacecolor="red",
+            markersize=10,
+            label="Above both critical baselines",
+        ),
+    ]
+    plt.legend(handles=legend_elements, loc="upper right")
+
+    plt.savefig(os.path.join(result_directory, "baseline_graph.png"))
+    plt.close()
