@@ -63,6 +63,36 @@ if __name__ == "__main__":
         ax.set_zlabel("Z Coordinate (m)")
         ax.set_title("3D Orbit Paths of Satellites")
 
+        # --- Matplotlib: Set equal aspect ratio ---
+        max_range = (
+            max(
+                max(x_coords_primary + x_coords_secondary)
+                - min(x_coords_primary + x_coords_secondary),
+                max(y_coords_primary + y_coords_secondary)
+                - min(y_coords_primary + y_coords_secondary),
+                max(z_coords_primary + z_coords_secondary)
+                - min(z_coords_primary + z_coords_secondary),
+            )
+            / 2.0
+        )
+
+        mid_x = (
+            max(x_coords_primary + x_coords_secondary)
+            + min(x_coords_primary + x_coords_secondary)
+        ) / 2.0
+        mid_y = (
+            max(y_coords_primary + y_coords_secondary)
+            + min(y_coords_primary + y_coords_secondary)
+        ) / 2.0
+        mid_z = (
+            max(z_coords_primary + z_coords_secondary)
+            + min(z_coords_primary + z_coords_secondary)
+        ) / 2.0
+
+        ax.set_xlim(mid_x - max_range, mid_x + max_range)
+        ax.set_ylim(mid_y - max_range, mid_y + max_range)
+        ax.set_zlim(mid_z - max_range, mid_z + max_range)
+
         # Add a legend
         ax.legend()
 
@@ -109,6 +139,7 @@ if __name__ == "__main__":
                 xaxis_title="X Coordinate (m)",
                 yaxis_title="Y Coordinate (m)",
                 zaxis_title="Z Coordinate (m)",
+                aspectmode="cube",  # Ensures equal scaling for all axes
             ),
             title="3D Orbit Paths of Satellites",
         )
