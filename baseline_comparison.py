@@ -220,6 +220,36 @@ def extract_orbit_direction(xml_file: str):
     return orbit_direction
 
 
+def extract_look_direction(xml_file: str):
+    """
+    Extract the look direction from an ICEYE metadata XML file.
+    This example assumes that the metadata contains the look direction under the tag 'look_side'.
+
+    Parameters:
+      xml_file (str): Path to the metadata XML file.
+
+    Returns:
+      look_direction (str): The look direction ('LEFT' or 'RIGHT').
+
+    """
+    if not os.path.exists(xml_file):
+        raise FileNotFoundError(f"File not found: {xml_file}")
+
+    try:
+        tree = ET.parse(xml_file)
+    except ET.ParseError as e:
+        raise ValueError(f"Error parsing XML file: {e}")
+
+    root = tree.getroot()
+    # Extract the look direction from the XML elements.
+    try:
+        look_direction = root.find(".//look_side").text
+    except AttributeError as e:
+        raise ValueError(f"Missing expected XML elements: {e}")
+
+    return look_direction
+
+
 def extract_critcal_baseline_data(xml_file: str):
     """
     Extract the data necessary for the calculation fo the critical baseline from an ICEYE metadata XML file.
