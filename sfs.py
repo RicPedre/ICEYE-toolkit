@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numexpr as ne
 
 # input files
-dem_file = "input_data/swissALTI3D2019.tif"
+dem_file = "input_data/alletch_tip_UTM.tif"
 satellite_file = "input_data/ICEYE_X2_SLC_SLEA_1000466_20220904T093630.xml"
 
 
@@ -28,15 +28,14 @@ Z = dem
 
 
 def compute_normals(X, Y, Z):
-    print("computing gradient")
+    print("computing normals")
     dzdx = np.gradient(Z, axis=1)
     dzdy = np.gradient(Z, axis=0)
-    print("computing normals")
     nx = -dzdx
     ny = -dzdy
     nz = np.ones_like(Z)
     norm = ne.evaluate("sqrt(nx**2 + ny**2 + nz**2)")
-    return np.dstack((nx, ny, nz)) / norm
+    return np.dstack((nx, ny, nz)) / norm[..., np.newaxis]
 
 
 sate_vectors = bs.extract_state_vectors(satellite_file)
@@ -58,7 +57,7 @@ look_vec /= np.linalg.norm(look_vec, axis=2, keepdims=True)
 def lambertian(normals, look_vec):
     print("computing lambertian reflectance")
     # Lambertian reflectance
-    dot = np.sum(normals * look_vec.reshape(1, 1, 3), axis=2)
+    dot = np.sum(normals * look_vec, axis=2)  # No reshape needed
     reflectance = np.clip(dot, 0, 1)
     return reflectance
 
@@ -69,4 +68,5 @@ reflectance = lambertian(normals, look_vec)
 plt.imshow(reflectance, cmap="gray")
 plt.title("Lambertian Reflectance")
 plt.colorbar(label="Reflectance")
+plt.savefig("results/lambertian_reflectance.png")
 plt.show()
