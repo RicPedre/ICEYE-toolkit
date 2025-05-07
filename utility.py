@@ -5,25 +5,112 @@ import numpy as np
 
 
 class dem:
-    def __init__(self, dem_file):
+    def __init__(
+        self,
+        dem_data: np.ndarray = None,
+        transform: rasterio.transform.Affine = None,
+        crs: CRS = None,
+        bounds: rasterio.coords.BoundingBox = None,
+        width: int = None,
+        height: int = None,
+        vertical_datum: str = None,
+        dem_file: str = None,
+    ):
+        """
+        Initialize the DEM class.
+
+        Parameters:
+        dem_data: numpy.ndarray
+            DEM data as a NumPy array.
+        transform: rasterio.transform.Affine
+            Affine transformation for the DEM.
+        crs: pyproj.CRS
+            Coordinate Reference System of the DEM.
+        bounds: rasterio.coords.BoundingBox
+            Bounds of the DEM.
+        width: int
+            Width of the DEM.
+        height: int
+            Height of the DEM.
+        vertical_datum: str
+            Vertical datum of the DEM.
+        dem_file: str
+            Path to the DEM file.
+        """
+
+        self.dem_data = dem_data
+        self.transform = transform
+        self.crs = crs
+        self.bounds = bounds
+        self.width = width
+        self.height = height
+        self.vertical_datum = vertical_datum
         self.dem_file = dem_file
-        self.dem_data = None
 
-        with rasterio.open(self.dem_file) as src:
-            self.transform = src.transform
-            self.crs = src.crs
-            self.bounds = src.bounds
-            self.width = src.width
-            self.height = src.height
+        # If dem_data is provided, set the attributes accordingly
+        if dem_data is not None and transform is not None and bounds is None:
+            # Calculate bounds from DEM data, CRS, and transform
+            self.bounds = rasterio.transform.array_bounds(
+                dem_data.shape[0], dem_data.shape[1], transform
+            )
+            self.width = dem_data.shape[1]
+            self.height = dem_data.shape[0]
 
-        if self.crs.to_dict().get("vertical_datum"):
-            self.vertical_datum = self.crs.to_dict()["vertical_datum"]
+        if dem_data is not None and bounds is not None and transform is None:
+            if width is None:
+                self.width = bounds.right - bounds.left
+            if height is None:
+                self.height = bounds.top - bounds.bottom
+            # Calculate transform from DEM data, CRS, and bounds
+            self.transform = rasterio.transform.from_bounds(
+                self.bounds.left,
+                self.bounds.bottom,
+                self.bounds.right,
+                self.bounds.top,
+                self.width,
+                self.height,
+            )
 
-    def read(self):
-        with rasterio.open(self.dem_file) as src:
-            self.dem_data = src.read(1).astype(float)
+    @classmethod
+    def from_file(cls, dem_file) -> "dem":
+        """
+        Create a DEM object from a file.
 
-    def display_info(self):
+        Parameters:
+        dem_file (str): Path to the DEM file.
+
+        Returns:
+        dem: An instance of the DEM class.
+        """
+        with rasterio.open(dem_file) as src:
+            dem_data = src.read(1).astype(float)
+            transform = src.transform
+            crs = src.crs
+            bounds = src.bounds
+            width = src.width
+            height = src.height
+            vertical_datum = None
+            print(f"Reading DEM file: {dem_file}")
+            dem_data = src.read(1).astype(float)
+
+            if crs.to_dict().get("vertical_datum"):
+                vertical_datum = crs.to_dict()["vertical_datum"]
+
+        return cls(
+            dem_data,
+            transform,
+            crs,
+            bounds=bounds,
+            width=width,
+            height=height,
+            vertical_datum=vertical_datum,
+            dem_file=dem_file,
+        )
+
+    def info(self):
+        """
+        Print information about the DEM object.
+        """
         print(f"DEM File: {self.dem_file}")
         print(f"CRS: {self.crs}")
         print(f"Bounds: {self.bounds}")
@@ -35,12 +122,10 @@ class dem:
             f"DEM Data Shape: {self.dem_data.shape if self.dem_data is not None else 'file not read yet. run read() first.'}"
         )
 
-    def wgs2utm(self):
+    def wgs2utm(self) -> "dem":
         """
-        Transform a DEM file from WGS84 (with vertical datum) to the appropriate UTM CRS.
+        Transform a DEM file from WGS84 (also with vertical datum) to the appropriate UTM CRS.
 
-        Parameters:
-        dem_file (str): Path to the DEM file.
 
         Returns:
         tuple: Transformed DEM data (NumPy array), UTM CRS, transform, and vertical datum (if present).
@@ -97,16 +182,20 @@ class dem:
         print("Transformation complete.")
 
         # update the self attributes with the new values
-        self.transform = dst_transform
-        self.crs = utm_crs
-        self.bounds = rasterio.transform.array_bounds(height, width, dst_transform)
-        self.width = width
-        self.height = height
-        self.dem_data = dem_utm
-        # Return the transformed DEM, UTM CRS, transform, and vertical datum if present
-        return dem_utm, utm_crs, dst_transform, self.vertical_datum
+        dst_dem = dem(
+            dem_data=dem_utm,
+            transform=dst_transform,
+            crs=utm_crs,
+            bounds=rasterio.transform.array_bounds(height, width, dst_transform),
+            width=width,
+            height=height,
+            vertical_datum=self.vertical_datum,
+        )
 
-    def save(self, output_file):
+        # Return the transformed DEM, UTM CRS, transform, and vertical datum if present
+        return dst_dem
+
+    def save(self, output_file: str):
         """
         Save the DEM data to a new file.
 
