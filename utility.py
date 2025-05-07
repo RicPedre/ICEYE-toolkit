@@ -105,3 +105,23 @@ class dem:
         self.dem_data = dem_utm
         # Return the transformed DEM, UTM CRS, transform, and vertical datum if present
         return dem_utm, utm_crs, dst_transform, self.vertical_datum
+
+    def save(self, output_file):
+        """
+        Save the DEM data to a new file.
+
+        Parameters:
+        output_file (str): Path to the output file.
+        """
+        with rasterio.open(
+            output_file,
+            "w",
+            driver="GTiff",
+            height=self.height,
+            width=self.width,
+            count=1,
+            dtype=self.dem_data.dtype,
+            crs=self.crs,
+            transform=self.transform,
+        ) as dst:
+            dst.write(self.dem_data, 1)
