@@ -214,3 +214,27 @@ class dem:
             transform=self.transform,
         ) as dst:
             dst.write(self.dem_data, 1)
+
+    def null_threshold(self, threshold: float) -> "dem":
+        """
+        Transform very low numbers in a DEM into null cells (NaN).
+
+        Parameters:
+            threshold (float): The threshold below which values are set to NaN.
+
+        Returns:
+            dem: A new DEM object with values below the threshold set to NaN.
+        """
+        # Replace values below the threshold with NaN
+        dem_with_nulls = dem(
+            dem_data=np.where(self.dem_data < threshold, np.nan, self.dem_data),
+            transform=self.transform,
+            crs=self.crs,
+            bounds=self.bounds,
+            width=self.width,
+            height=self.height,
+            vertical_datum=self.vertical_datum,
+            dem_file=self.dem_file,
+        )
+
+        return dem_with_nulls

@@ -3,6 +3,8 @@
 *.png
 *.txt
 *.tif
+*.html
+
 
 tester.py
 sandbox.ipynb

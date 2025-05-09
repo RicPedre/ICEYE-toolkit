@@ -8,6 +8,31 @@ from utility import dem
 # compute surface normals
 
 
+def create_pyramid_dem(size, max_height):
+    """
+    Create a synthetic pyramid-shaped DEM.
+
+    Parameters:
+    size (int): The size of the DEM grid (size x size).
+    max_height (float): The maximum elevation at the center of the pyramid.
+
+    Returns:
+    np.ndarray: A 2D array representing the pyramid-shaped DEM.
+    """
+    # Create a grid of coordinates
+    x = np.linspace(-1, 1, size)
+    y = np.linspace(-1, 1, size)
+    X, Y = np.meshgrid(x, y)
+
+    # Calculate the distance from the center
+    distance = np.maximum(np.abs(X), np.abs(Y))
+
+    # Assign elevation values (highest at the center, decreasing outward)
+    Z = max_height * (1 - distance)
+
+    return Z
+
+
 def compute_normals(X, Y, Z):
     print("computing normals")
     dzdx = np.gradient(Z, axis=1)
